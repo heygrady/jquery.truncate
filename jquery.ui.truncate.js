@@ -4,7 +4,7 @@
 (function ($) {
 	'use strict';
 	
-	$.widget("truncate", {
+	$.widget("ui.truncate", {
 		// These options will be used as defaults
 		options: {
 			height: false,
@@ -107,7 +107,7 @@
 			var $el = this.$lessContent,
 				length = this.text.length,
 				height = this.$less.height(),
-				maxHeight = this.options.height,
+				maxHeight = parseInt( this.options.height, 10 ),
 				rowHeight = $el.text('i').height(),
 				maxRows = maxHeight / rowHeight,
 				postfix = this.options.postfix || '',
