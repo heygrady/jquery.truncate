@@ -12,7 +12,8 @@
 			less: 'Less',
 			upper: false,
 			lower: false,
-			ellipsis: '&hellip; '
+			ellipsis: '&hellip; ',
+			truncateOnly: false
 		},
  
 		// Set up the widget
@@ -22,9 +23,29 @@
 				baseClass = this.widgetBaseClass,
 				self = this,
 				ellipsis = options.ellipsis || '';
-				
-			this.text = $el.text();
 			
+			// preserve the original text and HTML	
+			this.text = $el.text();
+			this.html = $el.html();
+			
+			this._createBaseNodes();
+			
+			// initial truncate
+			if (options.height) {
+				this.truncate();
+			}
+			
+			// hide the extra
+			if (!options.truncateOnly) {
+				this.showLess();
+			}
+		},
+		
+		_createBaseNodes: function() {
+			var $el = this.element,
+				options = this.options,
+				baseClass = this.widgetBaseClass;
+
 			// set up the base classes
 			$el.wrapInner('<span class="' + baseClass + '-less-content" />')
 				.wrapInner('<span class="' + baseClass + '-less" />')
@@ -33,11 +54,32 @@
 			
 			// find all of the elements
 			this.$wrapper = $el.find('.' + baseClass);
+			
+			// find the less nodes
 			this.$less = $el.find('.' + baseClass + '-less').append(document.createTextNode(' ')); // ensure a space between the text and the link
-			this.$more = $el.find('.' + baseClass + '-more').append(document.createTextNode(' ')); // ensure a space between the text and the link
 			this.$lessContent = $el.find('.' + baseClass + '-less-content');
+
+			// find the more nodes
+			this.$more = $el.find('.' + baseClass + '-more').append(document.createTextNode(' ')); // ensure a space between the text and the link
 			this.$moreContent = $el.find('.' + baseClass + '-more-content');
 			
+			if (options.truncateOnly) {
+				// create the ellipsis
+				this._createEllipsis();
+			} else {
+				// create the more link and content
+				this._createMore();
+			}		
+		},
+
+		_createMore: function () {
+			var $el = this.element,
+				options = this.options,
+				baseClass = this.widgetBaseClass,
+				self = this,
+				ellipsis = options.ellipsis || '';
+			
+
 			// create the more/less links
 			this.$moreAction = $('<a href="#" class="' + baseClass + '-action-more">' + ellipsis + options.more + '</a>').appendTo(this.$less);
 			this.$lessAction = $('<a href="#" class="' + baseClass + '-action-less">' + options.less + '</a>').appendTo(this.$more);
@@ -51,24 +93,40 @@
 				e.preventDefault();
 				self.showLess();
 			});
-			
-			// initial truncate
-			if (options.height) {
-				this.truncate();
-			}
-			
-			// hide the extra
-			this.showLess();
-			
 		},
 		
+		_createEllipsis: function () {
+			var options = this.options,
+				baseClass = this.widgetBaseClass,
+				ellipsis = options.ellipsis || '';
+			
+			// get rid of more
+			if (this.$more) {
+				this.$more.remove();
+				this.$more = null;
+				this.$moreContent = null;
+			}
+
+			// create the ellipsis
+			this.$ellipsis = $('<span href="#" class="' + baseClass + '-ellipsis">' + ellipsis + '</span>').appendTo(this.$less);
+		},
+
 		_setOption: function (key, value) {
+			var options = this.options;
+
 			switch (key) {
 				case 'more':
-				this.$moreAction.html(value);
-				break;
+					this.$moreAction.html(options.ellipsis + value);
+					break;
 				case 'less':
-				this.$lessAction.html(value);
+					this.$lessAction.html(value);
+					break;
+				case 'ellipsis':
+					if (options.truncateOnly) {
+						this.$ellipsis.html(value);
+					} else {
+						this.$moreAction.html(value + options.more);
+					}
 				break;
 			}
  
@@ -79,11 +137,23 @@
 			if (key === 'height') {
 				this.truncate();
 			}
+
+			// if truncateOnly changes, re-generate the original HTML nodes
+			if (key === 'truncateOnly') {
+				this.element.empty().html(this.html);
+				this._createBaseNodes();
+				if (options.height) {
+					this.truncate();
+				}
+			}
+
 		},
+
 		// Use the destroy method to clean up any modifications your widget has made to the DOM
 		destroy: function () {
-			//TODO: undo the create method
-			
+			// undo the create method
+			this.element.empty().html(this.html);
+
 			// In jQuery UI 1.8, you must invoke the destroy method from the base widget
 			$.Widget.prototype.destroy.call( this );
 		},
@@ -99,18 +169,22 @@
 		},
 		
 		truncate: function (test) {
+			var options = this.options;
+
 			// reset the text
 			this.$lessContent.text(this.text);
-			this.$moreContent.text('');
+			if (this.$moreContent) { 
+				this.$moreContent.text('');
+			}
 			
 			// measure some stuff
 			var $el = this.$lessContent,
 				length = this.text.length,
-				height = this.$less.height(),
+				origHeight = this.$less.height(),
+				height = origHeight,
 				maxHeight = parseInt( this.options.height, 10 ),
 				rowHeight = $el.text('i').height(),
 				maxRows = maxHeight / rowHeight,
-				postfix = this.options.postfix || '',
 				ratio,
 				done = false,
 				n = 0,
@@ -144,11 +218,21 @@
 				$el.html(this.text.substring(0, length));
 				height = this.$less.height();
 				n += 1;
-				
 			}
+
 			
+			// hide the ellipsis if it's not needed.
+			var ellipsis = options.truncateOnly ? this.$ellipsis : this.$moreAction;
+			if (height === origHeight) {
+				ellipsis.hide();
+			} else {
+				ellipsis.show();
+			}
+
 			// add the truncated text back to the page
-			this.$moreContent.html(this.text.substring(length));
+			if (this.$moreContent) {
+				this.$moreContent.html(this.text.substring(length));
+			}
 		}
 		
 	});
