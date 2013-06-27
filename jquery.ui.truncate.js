@@ -12,7 +12,7 @@
 			less: 'Less',
 			upper: false,
 			lower: false,
-			ellipsis: '&hellip; ',
+			ellipsis: ' &hellip; ',
 			truncateOnly: false
 		},
  
@@ -56,11 +56,11 @@
 			this.$wrapper = $el.find('.' + baseClass);
 			
 			// find the less nodes
-			this.$less = $el.find('.' + baseClass + '-less').append(document.createTextNode(' ')); // ensure a space between the text and the link
+			this.$less = $el.find('.' + baseClass + '-less');
 			this.$lessContent = $el.find('.' + baseClass + '-less-content');
 
 			// find the more nodes
-			this.$more = $el.find('.' + baseClass + '-more').append(document.createTextNode(' ')); // ensure a space between the text and the link
+			this.$more = $el.find('.' + baseClass + '-more');
 			this.$moreContent = $el.find('.' + baseClass + '-more-content');
 			
 			if (options.truncateOnly) {
